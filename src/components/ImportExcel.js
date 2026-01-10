@@ -8,6 +8,7 @@ const ImportExcel = () => {
   const [processing, setProcessing] = useState(false);
   const [results, setResults] = useState(null);
   const [errors, setErrors] = useState([]);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -46,6 +47,7 @@ const ImportExcel = () => {
     setProcessing(true);
     setResults(null);
     setErrors([]);
+    setProgress({ current: 0, total: 0 });
 
     try {
       const jsonData = await readExcelFile(file);
@@ -84,12 +86,18 @@ const ImportExcel = () => {
         throw new Error('Không tìm thấy mã đối tượng nào trong file Excel!');
       }
 
+      // Khởi tạo progress với tổng số
+      setProgress({ current: 0, total: maDoiTuongList.length });
+
       const successList = [];
       const errorList = [];
 
       // Xử lý từng mã đối tượng
       for (let i = 0; i < maDoiTuongList.length; i++) {
         const ma_dt = maDoiTuongList[i];
+        
+        // Cập nhật progress
+        setProgress({ current: i + 1, total: maDoiTuongList.length });
         
         try {
           // Bước 1: Tạo danh mục khách hàng
@@ -251,6 +259,22 @@ const ImportExcel = () => {
           <div className="processing-indicator">
             <div className="spinner"></div>
             <p>Đang xử lý dữ liệu, vui lòng đợi...</p>
+            {progress.total > 0 && (
+              <div className="progress-container">
+                <div className="progress-info">
+                  <span>Đang xử lý: {progress.current}/{progress.total} đối tượng</span>
+                  <span className="progress-percentage">
+                    {Math.round((progress.current / progress.total) * 100)}%
+                  </span>
+                </div>
+                <div className="progress-bar-wrapper">
+                  <div 
+                    className="progress-bar" 
+                    style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
