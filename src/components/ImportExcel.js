@@ -261,7 +261,8 @@ const ImportExcel = () => {
         setProgress({ current: i + 1, total: maDoiTuongList.length });
 
         try {
-          // Bước 1: Tạo danh mục khách hàng
+          // Bước 1: Tạo danh mục khách hàng (độc lập)
+          let customerSuccess = false;
           const customerResult = await createCustomer(ma_dt);
 
           if (!customerResult || !customerResult.success) {
@@ -284,26 +285,32 @@ const ImportExcel = () => {
               step: "Tạo danh mục khách hàng",
               error: errorMsg,
             });
-            continue;
-          }
-
-          // Kiểm tra response từ API tạo danh mục khách hàng có lỗi không
-          if (customerResult.data && typeof customerResult.data === "object") {
-            if (customerResult.data.error || customerResult.data.message) {
-              const errorMsg =
-                customerResult.data.error || customerResult.data.message;
-              errorList.push({
-                ma_dt,
-                step: "Tạo danh mục khách hàng",
-                error: errorMsg,
-              });
-              continue;
+          } else {
+            // Kiểm tra response từ API tạo danh mục khách hàng có lỗi không
+            if (
+              customerResult.data &&
+              typeof customerResult.data === "object"
+            ) {
+              if (customerResult.data.error || customerResult.data.message) {
+                const errorMsg =
+                  customerResult.data.error || customerResult.data.message;
+                errorList.push({
+                  ma_dt,
+                  step: "Tạo danh mục khách hàng",
+                  error: errorMsg,
+                });
+              } else {
+                customerSuccess = true;
+              }
+            } else {
+              customerSuccess = true;
             }
           }
 
-          // Bước 2: Tạo user tra cứu
+          // Bước 2: Tạo user tra cứu (độc lập, luôn thực hiện dù tạo khách hàng thành công hay thất bại)
           const userResult = await createUserTracuu(ma_dt);
 
+          // Xử lý kết quả tạo user tra cứu (độc lập)
           if (!userResult || !userResult.success) {
             let errorMsg = "Lỗi không xác định";
 
@@ -324,62 +331,78 @@ const ImportExcel = () => {
               step: "Tạo user tra cứu",
               error: errorMsg,
             });
-            continue;
-          }
-
-          // Kiểm tra response từ API tạo user
-          if (userResult.data) {
-            // Trường hợp thành công: có trường "ok"
-            if (userResult.data.ok) {
-              successList.push({
-                ma_dt,
-                message: userResult.data.ok,
-              });
-            }
-            // Trường hợp lỗi: có trường "error" hoặc "message" với nội dung lỗi
-            else if (
-              userResult.data.error ||
-              (userResult.data.message &&
-                !userResult.data.message.includes("thành công"))
-            ) {
-              const errorMsg = userResult.data.error || userResult.data.message;
-              errorList.push({
-                ma_dt,
-                step: "Tạo user tra cứu",
-                error: errorMsg,
-              });
-            }
-            // Trường hợp response là string
-            else if (typeof userResult.data === "string") {
-              if (
-                userResult.data.toLowerCase().includes("lỗi") ||
-                userResult.data.toLowerCase().includes("error")
+          } else {
+            // Kiểm tra response từ API tạo user
+            if (userResult.data) {
+              // Trường hợp thành công: có trường "ok"
+              if (userResult.data.ok) {
+                successList.push({
+                  ma_dt,
+                  message: `Tạo user tra cứu thành công. ${
+                    customerSuccess
+                      ? "Tạo khách hàng thành công."
+                      : "Tạo khách hàng thất bại."
+                  }`,
+                });
+              }
+              // Trường hợp lỗi: có trường "error" hoặc "message" với nội dung lỗi
+              else if (
+                userResult.data.error ||
+                (userResult.data.message &&
+                  !userResult.data.message.includes("thành công"))
               ) {
+                const errorMsg =
+                  userResult.data.error || userResult.data.message;
                 errorList.push({
                   ma_dt,
                   step: "Tạo user tra cứu",
-                  error: userResult.data,
-                });
-              } else {
-                successList.push({
-                  ma_dt,
-                  message: userResult.data,
+                  error: errorMsg,
                 });
               }
-            }
-            // Trường hợp khác, coi như thành công nếu không có dấu hiệu lỗi
-            else {
+              // Trường hợp response là string
+              else if (typeof userResult.data === "string") {
+                if (
+                  userResult.data.toLowerCase().includes("lỗi") ||
+                  userResult.data.toLowerCase().includes("error")
+                ) {
+                  errorList.push({
+                    ma_dt,
+                    step: "Tạo user tra cứu",
+                    error: userResult.data,
+                  });
+                } else {
+                  successList.push({
+                    ma_dt,
+                    message: `Tạo user tra cứu thành công. ${
+                      customerSuccess
+                        ? "Tạo khách hàng thành công."
+                        : "Tạo khách hàng thất bại."
+                    }`,
+                  });
+                }
+              }
+              // Trường hợp khác, coi như thành công nếu không có dấu hiệu lỗi
+              else {
+                successList.push({
+                  ma_dt,
+                  message: `Tạo user tra cứu thành công. ${
+                    customerSuccess
+                      ? "Tạo khách hàng thành công."
+                      : "Tạo khách hàng thất bại."
+                  }`,
+                });
+              }
+            } else {
+              // Không có data, coi như thành công
               successList.push({
                 ma_dt,
-                message: "Thành công",
+                message: `Tạo user tra cứu thành công. ${
+                  customerSuccess
+                    ? "Tạo khách hàng thành công."
+                    : "Tạo khách hàng thất bại."
+                }`,
               });
             }
-          } else {
-            // Không có data, coi như thành công
-            successList.push({
-              ma_dt,
-              message: "Thành công",
-            });
           }
         } catch (error) {
           const errorMessage =
