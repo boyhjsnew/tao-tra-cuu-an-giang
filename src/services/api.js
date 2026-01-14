@@ -8,7 +8,7 @@ const LANGUAGE = "vi";
 const getHeaders = () => ({
   Accept: "*/*",
   "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7,fr-FR;q=0.6,fr;q=0.5",
-  Authorization: `Bear ${AUTH_TOKEN};${MA_DVCS};${LANGUAGE}`,
+  Authorization: `Bear ${AUTH_TOKEN}`,
   "Cache-Control": "no-cache",
   Connection: "keep-alive",
   "Content-type": "application/json",
@@ -79,11 +79,14 @@ export const createCustomer = async (ma_dt) => {
 // API 2: Tạo user tra cứu
 export const createUserTracuu = async (ma_dt) => {
   try {
+    // mst phải là mã số thuế cố định (1702325579) theo curl command
+    const mst = "1702325579";
+
     const response = await fetch(`${API_BASE_URL}/Invoice/CreateUser_tracuu`, {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify({
-        mst: ma_dt,
+        mst: mst,
         ma_dt: ma_dt,
         username: ma_dt,
         password: ma_dt,
